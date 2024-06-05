@@ -41,26 +41,14 @@ if [[ -n "${POOL_NAME:-}" ]]; then
           --compact-output
   }
 
-  get_lease_status() {
-    get_lease \
-      | jq -r .status
-  }
-
-  get_lease_output() {
-    get_lease \
-      | jq -r .output \
-           --sort-keys \
-           --compact-output
-  }
-
   wait_until_env_is_ready() {
-    set -x
     echo "::group::Lease readiness"
-    while lease_json=$(get_lease); do
-      status=$(printf "%s" "${lease_json}" | jq -r .status)
+    while get_lease > lease.json; do
+      status=$(jq -r .status lease.json )
       echo "[$(date -u +%Y-%m-%dT%H:%M:%S%Z)] Lease status: ${status:?}"
-      # echo "[$(date -u +%Y-%m-%dT%H:%M:%S%Z)] Lease output: $( get_lease_output )"
-      echo "[$(date -u +%Y-%m-%dT%H:%M:%S%Z)] Lease status_message: $( printf "%s" "${lease_json}"  | jq -r .status_message --sort-keys )"
+
+      [[ "${TRACE:-0}" == "1" ]] && jq -r 'keys[] as $k | "\n\($k): \(.[$k] | tojson)"' lease.json
+
       case ${status} in
         LEASED)
           exit 0
@@ -74,7 +62,6 @@ if [[ -n "${POOL_NAME:-}" ]]; then
       esac
     done
     echo "::endgroup::"
-    set +x
   }
 
   # lease_id="966e8ad2-ff7f-4611-b053-4cd2299927d7" # LEASED
@@ -83,6 +70,4 @@ if [[ -n "${POOL_NAME:-}" ]]; then
   echo "env-id=$lease_id" >> "${GITHUB_OUTPUT}"
 
   time wait_until_env_is_ready
-
-  get_lease > lease.json
 fi
