@@ -34,7 +34,7 @@ if [[ -n "${POOL_NAME:-}" ]]; then
 
   get_lease() {
     shepherd get lease "${lease_id:?}" \
-      --namespace tas-devex \
+      --namespace "${NAMESPACE:?}" \
       --json \
       | jq -r \
           --sort-keys \
